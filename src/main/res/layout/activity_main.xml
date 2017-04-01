@@ -7,22 +7,50 @@
     android:orientation="vertical">
 
     <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="현재 노선"
+        android:textSize="40sp"
+        android:layout_gravity="center"
+        android:layout_marginTop="20dp"
+        android:textColor="@android:color/black"/>
+
+    <TextView
+        android:id="@+id/tv_busstyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="90sp"
+        android:layout_gravity="center"
+        android:textColor="@android:color/black"/>
+
+    <Button
+        android:id="@+id/btn_changebus"
+        android:layout_width="200dp"
+        android:layout_height="120dp"
+        android:layout_gravity="center"
+        android:layout_marginTop="10dp"
+        android:background="@color/colorPrimary"
+        android:text="노선 변경"
+        android:textColor="@android:color/white"
+        android:textSize="40sp" />
+
+    <TextView
+        android:id="@+id/tv_gps_provider"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:layout_marginTop="20dp"
+        android:textSize="20sp"
+        android:textColor="@android:color/black"/>
+
+    <TextView
         android:id="@+id/tv_latitude"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
     <TextView
         android:id="@+id/tv_longitude"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
-
-    <TextView
-        android:id="@+id/tv_accuracy"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
-
-    <EditText
-        android:id="@+id/et_latlong"
-        android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 
 </LinearLayout>

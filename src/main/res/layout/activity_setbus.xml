@@ -7,10 +7,11 @@
         android:id="@+id/textView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="버스 종류를 설정해 주세요"
+        android:text="노선을 설정해 주세요"
         android:layout_gravity="center"
         android:layout_marginTop="20dp"
-        android:textSize="25sp"/>
+        android:textSize="30sp"
+        android:textColor="@android:color/black"/>
 
     <Button
         android:id="@+id/button_bus_a"
@@ -19,8 +20,10 @@
         android:layout_marginTop="30dp"
         android:layout_marginLeft="20dp"
         android:layout_marginRight="20dp"
-        android:text="A버스"
-        android:textSize="30sp"/>
+        android:text="A 노선"
+        android:textSize="50sp"
+        android:textColor="@android:color/white"
+        android:background="@android:color/holo_blue_dark"/>
 
     <Button
         android:id="@+id/button_bus_b"
@@ -29,8 +32,22 @@
         android:layout_marginTop="30dp"
         android:layout_marginLeft="20dp"
         android:layout_marginRight="20dp"
-        android:text="B버스"
-        android:textSize="30sp"/>
+        android:text="B 노선"
+        android:textSize="50sp"
+        android:textColor="@android:color/white"
+        android:background="@android:color/holo_orange_dark"/>
+
+    <Button
+        android:id="@+id/button_bus_pause"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:layout_marginTop="30dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginRight="20dp"
+        android:text="운행 안 함"
+        android:textSize="50sp"
+        android:textColor="@android:color/white"
+        android:background="@android:color/holo_green_dark"/>
 
 
 
