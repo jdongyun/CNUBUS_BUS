@@ -1,8 +1,10 @@
 package cnu.busstop;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -21,6 +23,10 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.w3c.dom.Text;
+
 import java.io.IOException;
 
 import okhttp3.Call;
@@ -36,7 +42,8 @@ public class MainActivity extends AppCompatActivity {
 
     int GPS_SYNC_TIME = 1000;
     int GPS_SYNC_METER = 1;
-    boolean THREAD_LOOP= true;
+    public static boolean THREAD_LOOP = true;
+    public static boolean X_LOOP = true;
 
     Double latitude, longitude;
     float accuracy;
@@ -45,14 +52,14 @@ public class MainActivity extends AppCompatActivity {
     String LOG_TAG = "CNUBUS_forBus";
 
     TextView tvBusStyle;
-    TextView tvLatitude;
-    TextView tvLongitude;
     TextView tvGPSProvider;
+    TextView tvGPSLocation;
+    TextView tvConnect;
 
-    LocationManager mLM;
+    public LocationManager mLM;
 
     OkHttpClient client;
-    Thread connThread;
+    public static Thread connThread;
 
 
 
@@ -60,19 +67,25 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-
-
-        SharedPreferences pref = getSharedPreferences("busStop", MODE_PRIVATE);
+        final SharedPreferences pref = getSharedPreferences("busStop", MODE_PRIVATE);
         if(pref.getString("busStyle", "NULL").equals("NULL")) { //처음 실행시 버스종류 지정이 안됐을 때
-            startActivity(new Intent(MainActivity.this, BusSetActivity.class));
+            Intent intent = new Intent(MainActivity.this, BusSetActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+
+            startActivity(intent);
 
         } else { //버스 종류가 지정되어 있을 때
             setContentView(R.layout.activity_main);
 
+            THREAD_LOOP = true;
+
             tvBusStyle = (TextView) findViewById(R.id.tv_busstyle);
-            tvLatitude = (TextView) findViewById(R.id.tv_latitude);
-            tvLongitude = (TextView) findViewById(R.id.tv_longitude);
             tvGPSProvider = (TextView) findViewById(R.id.tv_gps_provider);
+            tvGPSLocation = (TextView) findViewById(R.id.tv_gps_location);
+            tvConnect = (TextView) findViewById(R.id.tv_svr_connect);
+
+            tvConnect.setText("서버 전송 준비중입니다.");
+
             if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 checkLocationPermission();
             }
@@ -83,7 +96,15 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onClick(View v) {
                     Intent intent = new Intent(MainActivity.this, BusSetActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
                     intent.putExtra("changeBus", true);
+                    if(mLM != null) {
+                        Log.i("CNUBUS", "mLM is not null");
+                        intent.putExtra("mLM", true);
+                        mLM.removeUpdates(mLocationListener);
+                    }else {
+                        Log.i("CNUBUS", "mLM is null");
+                    }
                     startActivity(intent);
                 }
             });
@@ -91,6 +112,101 @@ public class MainActivity extends AppCompatActivity {
 
             if(pref.getString("busStyle", "NULL").equals("X")) { //버스가 운행중이 아닐 때
                 tvBusStyle.setText("중지");
+
+                client = new OkHttpClient();
+
+
+                new Thread() {
+                    @Override
+                    public void run() {
+                        X_LOOP = true;
+                        while(X_LOOP) {
+
+                            RequestBody formBody = new FormBody.Builder()
+                                    .add("id", pref.getString("busID", "NULL"))
+                                    .add("lat", "0")
+                                    .add("lng", "0")
+                                    .add("accu", "0")
+                                    .add("route", "X")
+                                    .add("time", String.valueOf(System.currentTimeMillis()/1000L))
+                                    .add("key", "xfjNb4WqiOPVLdR")
+                                    .build();
+
+                            Request request = new Request.Builder()
+                                    .url("https://cnubus.dyun.kr/location/")
+                                    .post(formBody)
+                                    .build();
+
+                            client.newCall(request).enqueue(new Callback() {
+                                @Override
+                                public void onFailure(Call call, IOException e) {
+                                    //아예 서버통신이 불가능할 때(인터넷통신이 안된다거나)
+
+                                    runOnUiThread(new Runnable()
+                                    {
+                                        @Override
+                                        public void run()
+                                        {
+                                            tvConnect.setText("서버와의 통신이 불가능합니다.");
+                                            tvConnect.setTextColor(ContextCompat.getColor(getApplicationContext(), android.R.color.holo_red_dark));
+
+                                        }
+                                    });
+                                    e.printStackTrace();
+                                }
+
+                                @Override
+                                public void onResponse(Call call, final Response response) throws IOException {
+                                    try {
+                                        if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+
+                                        runOnUiThread(new Runnable()
+                                        {
+                                            @Override
+                                            public void run()
+                                            {
+                                                tvConnect.setText("서버에 전송되었습니다.");
+                                                tvConnect.setTextColor(ContextCompat.getColor(getApplicationContext(), android.R.color.black));
+                                                X_LOOP = false;
+                                            }
+                                        });
+                                        JSONObject json = new JSONObject(response.body().string());
+                                        Log.d(LOG_TAG, "JSON is " + json.getInt("time"));
+
+                                    }catch (IOException e) {
+                                        runOnUiThread(new Runnable()
+                                        {
+                                            @Override
+                                            public void run()
+                                            {
+                                                if(response.code() == 403) {
+                                                    tvConnect.setText("전송 정보에 오류가 있습니다.");
+                                                    tvConnect.setTextColor(ContextCompat.getColor(getApplicationContext(), android.R.color.holo_red_dark));
+
+                                                } else if(response.code() == 502 || response.code() == 521) {
+                                                    tvConnect.setText("서버에 오류가 있습니다.");
+                                                    tvConnect.setTextColor(ContextCompat.getColor(getApplicationContext(), android.R.color.holo_red_dark));
+                                                }
+
+                                            }
+                                        });
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+                                    }
+
+                                }
+                            });
+                            try {
+                                Thread.sleep(3000);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+
+                        }
+
+
+                    }
+                }.start();
 
 
             } else { //버스가 운행중일 때
@@ -111,17 +227,18 @@ public class MainActivity extends AppCompatActivity {
 
                         while(THREAD_LOOP) {
                             try {
-                                if(latitude != null &&
+                                if(latitude != null/* &&
                                         tmp_latitude != latitude &&
-                                        tmp_longitude != longitude) {
+                                        tmp_longitude != longitude*/) {
 
                                     RequestBody formBody = new FormBody.Builder()
-                                            .add("id", "q555")
+                                            .add("id", pref.getString("busID", "NULL"))
                                             .add("lat", String.valueOf(latitude))
                                             .add("lng", String.valueOf(longitude))
                                             .add("accu", String.valueOf(accuracy))
                                             .add("route", pref.getString("busStyle", "NULL"))
                                             .add("time", String.valueOf(System.currentTimeMillis()/1000L))
+                                            .add("key", "xfjNb4WqiOPVLdR")
                                             .build();
 
                                     Request request = new Request.Builder()
@@ -134,19 +251,56 @@ public class MainActivity extends AppCompatActivity {
                                     client.newCall(request).enqueue(new Callback() {
                                         @Override
                                         public void onFailure(Call call, IOException e) {
+                                            runOnUiThread(new Runnable()
+                                            {
+                                                @Override
+                                                public void run()
+                                                {
+                                                    tvConnect.setText("서버와의 통신이 불가능합니다.");
+                                                    tvConnect.setTextColor(ContextCompat.getColor(getApplicationContext(), android.R.color.holo_red_dark));
+
+                                                }
+                                            });
                                             e.printStackTrace();
                                         }
 
                                         @Override
-                                        public void onResponse(Call call, Response response) throws IOException {
-                                            if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+                                        public void onResponse(Call call, final Response response) throws IOException {
+                                            Log.i(LOG_TAG, "code is " + response.code());
+                                            try {
+                                                if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
 
-                                            Headers responseHeaders = response.headers();
-                                            for (int i = 0, size = responseHeaders.size(); i < size; i++) {
-                                                System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
+                                                runOnUiThread(new Runnable() {
+                                                    @Override
+                                                    public void run() {
+                                                        tvConnect.setText("서버와 정상적으로 통신 중입니다.");
+                                                        tvConnect.setTextColor(ContextCompat.getColor(getApplicationContext(), android.R.color.black));
+
+                                                    }
+                                                });
+                                                JSONObject json = new JSONObject(response.body().string());
+                                                Log.d(LOG_TAG, "JSON is " + json.getInt("time"));
+
+                                            }catch (IOException e) {
+                                                runOnUiThread(new Runnable()
+                                                {
+                                                    @Override
+                                                    public void run()
+                                                    {
+                                                        if(response.code() == 403) {
+                                                            tvConnect.setText("전송 정보에 오류가 있습니다.");
+                                                            tvConnect.setTextColor(ContextCompat.getColor(getApplicationContext(), android.R.color.holo_red_dark));
+
+                                                        } else if(response.code() == 502 || response.code() == 521) {
+                                                            tvConnect.setText("서버에 오류가 있습니다.");
+                                                            tvConnect.setTextColor(ContextCompat.getColor(getApplicationContext(), android.R.color.holo_red_dark));
+                                                        }
+
+                                                    }
+                                                });
+                                            } catch (JSONException e) {
+                                                e.printStackTrace();
                                             }
-
-                                            System.out.println(response.body().string());
                                         }
                                     });
                                 }
@@ -155,8 +309,6 @@ public class MainActivity extends AppCompatActivity {
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
-
-
 
 
                         }
@@ -269,10 +421,7 @@ public class MainActivity extends AppCompatActivity {
             Log.i(LOG_TAG, latitude + "," + longitude + " accuracy : " + accuracy);
             if(longitude != null) {
 
-
-                tvLatitude.setText(Double.toString(latitude));
-                tvLongitude.setText(Double.toString(longitude));
-                //tvAccuracy.setText(Float.toString(accuracy));
+                tvGPSLocation.setText("위도 : " +Double.toString(latitude)+"\n경도 : " + Double.toString(longitude));
 
                 if (location.getProvider().equals(LocationManager.GPS_PROVIDER)) {
                     tvGPSProvider.setText("GPS에 연결되었습니다.\n정확도 : " + accuracy);
@@ -304,11 +453,54 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop() {
         //노선 변경으로 Activity가 변경되었을 때 LocationManager의 Update를 해제한다.
         super.onStop();
+
+
+
+        Log.d("TestAppActivity", "onStop");
+        /*
         if(mLM != null) //운행이 중지되었을 때에는 LocationManager이 할당되지 않았으므로 NPE가 발생함.
             mLM.removeUpdates(mLocationListener);
         if(connThread != null) {
             connThread.interrupt();
             THREAD_LOOP = false; //Thread에서 더 이상 LOOP를 돌리지 않음
-        }
+        }*/
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d("TestAppActivity", "onStart");
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        Log.d("TestAppActivity", "onRestart");
+    }
+
+
+    @Override
+    protected void onPostResume() {
+        super.onPostResume();
+        Log.d("TestAppActivity", "onPostResume");
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.d("TestAppActivity", "onPause");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d("TestAppActivity", "onResume");
+
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.d("onPostCreate", "onDestroy");
     }
 }

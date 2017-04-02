@@ -45,12 +45,23 @@
         android:textColor="@android:color/black"/>
 
     <TextView
-        android:id="@+id/tv_latitude"
+        android:id="@+id/tv_svr_connect"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:layout_marginTop="20dp"
+        android:textSize="20sp"
+        android:textColor="@android:color/black"/>
+
     <TextView
-        android:id="@+id/tv_longitude"
+        android:id="@+id/tv_gps_location"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="20dp"
+        android:textSize="15sp"
+        android:textColor="@android:color/black"/>
+
 
 </LinearLayout>
