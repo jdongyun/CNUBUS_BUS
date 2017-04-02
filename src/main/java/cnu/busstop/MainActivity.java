@@ -80,6 +80,10 @@ public class MainActivity extends AppCompatActivity {
             tvConnect = (TextView) findViewById(R.id.tv_svr_connect);
 
             tvConnect.setText("서버 전송 준비중입니다.");
+            if(pref.getString("busID", "NULL").equals("NULL")) {
+                ((TextView) findViewById(R.id.tv_bus_id)).setText("단말기 ID가 설정되지 않았습니다.");
+            }
+
 
 
 
