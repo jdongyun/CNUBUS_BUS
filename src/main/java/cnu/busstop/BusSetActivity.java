@@ -1,8 +1,13 @@
 package cnu.busstop;
 
+import android.Manifest;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -11,13 +16,21 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
+
+
 
 public class BusSetActivity extends AppCompatActivity {
-    public static boolean isRun = true;
+
+    public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            checkLocationPermission();
+        }
 
 
         final SharedPreferences pref = getSharedPreferences("busStop", MODE_PRIVATE);
@@ -30,15 +43,8 @@ public class BusSetActivity extends AppCompatActivity {
             startActivity(intent);
         }
 
-        Log.i("CNUBUS", "check is " + pref.getBoolean("mLM", false));
-
-        if(getIntent().getBooleanExtra("mLM", false)) {
-
-            isRun = false;
-            Log.i("CNUBUS", "bool is " + isRun);
-            MainActivity.THREAD_LOOP = false;
-
-            MainActivity.connThread.interrupt();
+        if(MainActivity.connTimer != null) {
+            MainActivity.connTimer.cancel();
         }
 
         setContentView(R.layout.activity_setbus);
@@ -53,7 +59,6 @@ public class BusSetActivity extends AppCompatActivity {
         buttonBusA.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MainActivity.THREAD_LOOP = true;
                 editor.putString("busStyle", "A")
                        .apply();
                 Intent intent = new Intent(BusSetActivity.this, MainActivity.class);
@@ -120,5 +125,54 @@ public class BusSetActivity extends AppCompatActivity {
     public void onBackPressed() {
         //뒤로가기를 방지한다.
         return;
+    }
+
+
+    public boolean checkLocationPermission(){
+        if (ContextCompat.checkSelfPermission(this,
+                android.Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            // Asking user if explanation is needed
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    android.Manifest.permission.ACCESS_FINE_LOCATION)) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
+                        MY_PERMISSIONS_REQUEST_LOCATION);
+
+
+            } else {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
+                        MY_PERMISSIONS_REQUEST_LOCATION);
+            }
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_LOCATION: {
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    if (ContextCompat.checkSelfPermission(this,
+                            Manifest.permission.ACCESS_FINE_LOCATION)
+                            == PackageManager.PERMISSION_GRANTED) {
+
+                    }
+
+                } else {
+
+                    Toast.makeText(this, "권한 오류!", Toast.LENGTH_LONG).show();
+                }
+                return;
+            }
+
+        }
     }
 }
