@@ -183,7 +183,7 @@ public class MainActivity extends AppCompatActivity {
                                                     tvConnect.setText("전송 정보에 오류가 있습니다.");
                                                     tvConnect.setTextColor(ContextCompat.getColor(getApplicationContext(), android.R.color.holo_red_dark));
 
-                                                } else if(response.code() == 502 || response.code() == 521) {
+                                                } else if(response.code() == 500 || response.code() == 502 || response.code() == 521) {
                                                     tvConnect.setText("서버에 오류가 있습니다.");
                                                     tvConnect.setTextColor(ContextCompat.getColor(getApplicationContext(), android.R.color.holo_red_dark));
                                                 }
@@ -291,7 +291,7 @@ public class MainActivity extends AppCompatActivity {
                                                             tvConnect.setText("전송 정보에 오류가 있습니다.");
                                                             tvConnect.setTextColor(ContextCompat.getColor(getApplicationContext(), android.R.color.holo_red_dark));
 
-                                                        } else if(response.code() == 502 || response.code() == 521) {
+                                                        } else if(response.code() == 500 || response.code() == 502 || response.code() == 521) {
                                                             tvConnect.setText("서버에 오류가 있습니다.");
                                                             tvConnect.setTextColor(ContextCompat.getColor(getApplicationContext(), android.R.color.holo_red_dark));
                                                         }
